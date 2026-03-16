@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Calculator">
+<meta name="theme-color" content="#f5f4f0">
+<title>Calculator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #eeedea;
+    --border: rgba(0,0,0,0.09);
+    --border-strong: rgba(0,0,0,0.15);
+    --accent: #c45000;
+    --accent-light: #fff0e6;
+    --text: #1a1a18;
+    --muted: #6b6860;
+    --dim: #b0aea8;
+    --danger: #cc2200;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: max(env(safe-area-inset-top), 24px) 20px max(env(safe-area-inset-bottom), 20px);
+    gap: 12px;
+  }
+
+  /* header */
+  .header { display: flex; justify-content: space-between; align-items: center; }
+  .header-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .btn-clear {
+    font-size: 11px;
+    color: var(--dim);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 0;
+    transition: color 0.15s;
+  }
+  .btn-clear:hover { color: var(--danger); }
+
+  /* display */
+  .display {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px 16px;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .display-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 5px;
+    font-weight: 700;
+  }
+  .display-expr {
+    font-family: 'Menlo', 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 4px;
+    min-height: 16px;
+    word-break: break-all;
+    white-space: normal;
+  }
+  .display-number {
+    font-family: 'Menlo', 'Courier New', monospace;
+    font-size: 36px;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1.1;
+    word-break: break-all;
+    min-height: 42px;
+  }
+  .display-number.empty { color: var(--dim); font-size: 26px; font-weight: 400; }
+  .display-number.thinking { color: var(--dim); font-size: 16px; font-style: italic; font-weight: 400; }
+
+  /* history */
+  .history-box {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    -webkit-overflow-scrolling: touch;
+  }
+  .history-placeholder {
+    margin: auto;
+    font-size: 13px;
+    color: var(--dim);
+    font-style: italic;
+    padding: 20px;
+    text-align: center;
+  }
+  .history-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .history-row:last-child { border-bottom: none; }
+  .history-q {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Menlo', 'Courier New', monospace;
+    flex: 1;
+    /* Fix: allow normal horizontal wrapping */
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    min-width: 0;
+  }
+  .history-a {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    flex-shrink: 0;
+    font-family: 'Menlo', 'Courier New', monospace;
+    text-align: right;
+  }
+
+  /* input */
+  .input-area { display: flex; flex-direction: column; gap: 6px; }
+  .input-row { display: flex; gap: 8px; }
+
+  input[type="text"] {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 0 14px;
+    height: 48px;
+    font-size: 16px;
+    font-family: inherit;
+    color: var(--text);
+    outline: none;
+    -webkit-appearance: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  input[type="text"]::placeholder { color: var(--dim); }
+  input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(196,80,0,0.1);
+  }
+  input[type="text"]:disabled { opacity: 0.5; }
+
+  button.go {
+    background: var(--accent);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 0 24px;
+    height: 48px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    -webkit-appearance: none;
+    box-shadow: 0 1px 3px rgba(196,80,0,0.25);
+    transition: opacity 0.15s;
+  }
+  button.go:hover { opacity: 0.88; }
+  button.go:active { opacity: 0.75; transform: scale(0.97); }
+  button.go:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .error { font-size: 12px; color: var(--danger); min-height: 16px; padding: 0 2px; }
+  .hint { font-size: 11px; color: var(--dim); padding: 0 2px; line-height: 1.7; }
+  .hint b { color: var(--muted); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <span class="header-title">Calculator</span>
+    <button class="btn-clear" id="btn-clear">Clear history</button>
+  </div>
+
+  <div class="display">
+    <div class="display-label" id="lbl-label">Result</div>
+    <div class="display-expr" id="lbl-expr"></div>
+    <div class="display-number empty" id="lbl-number">&#8212;</div>
+  </div>
+
+  <div class="history-box" id="history-box"></div>
+
+  <div class="input-area">
+    <div class="input-row">
+      <input type="text" id="math-input"
+        placeholder="Ask anything: 20% of $85, (2×4)÷16…"
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+      <button class="go" id="btn-calc">Go</button>
+    </div>
+    <div class="error" id="error-msg"></div>
+    <div class="hint">
+      Try: <b>(2 × 4) divided by 16</b> &bull; <b>20% off $129.99</b> &bull;
+      <b>split $85 among 4 with 15% tip</b> &bull; <b>monthly payment on $300k loan at 4.5% for 30 years</b>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+
+  var WORKER_URL = 'https://calculator.donaldsondad.workers.dev/';
+
+  var history = [];
+  var busy = false;
+
+  function el(id) { return document.getElementById(id); }
+
+  function setDisplay(label, expr, number, cls) {
+    el('lbl-label').textContent  = label  || 'Result';
+    el('lbl-expr').textContent   = expr   || '';
+    el('lbl-number').textContent = number || '\u2014';
+    el('lbl-number').className   = 'display-number' + (cls ? ' ' + cls : '');
+  }
+
+  function setError(msg) { el('error-msg').textContent = msg || ''; }
+
+  function setBusy(state, expr) {
+    busy = state;
+    el('btn-calc').disabled   = state;
+    el('math-input').disabled = state;
+    if (state) {
+      setDisplay('Thinking\u2026', expr, 'working on it\u2026', 'thinking');
+    }
+  }
+
+  function renderHistory() {
+    var box = el('history-box');
+    box.innerHTML = '';
+    if (history.length === 0) {
+      var ph = document.createElement('div');
+      ph.className = 'history-placeholder';
+      ph.textContent = 'Your calculations will appear here';
+      box.appendChild(ph);
+      return;
+    }
+    history.forEach(function (item) {
+      var row = document.createElement('div');
+      row.className = 'history-row';
+      var q = document.createElement('span');
+      q.className = 'history-q';
+      q.textContent = item.raw;
+      var a = document.createElement('span');
+      a.className = 'history-a';
+      a.textContent = item.result;
+      row.appendChild(q);
+      row.appendChild(a);
+      box.appendChild(row);
+    });
+  }
+
+  var SYSTEM = 'You are a calculator. The user gives you a math problem in plain English or symbols. ' +
+    'Return ONLY the final answer — just the number or value, no explanation, no markdown. ' +
+    'Handle order of operations (PEMDAS) correctly. ' +
+    'Handle percentages, discounts, tips, bill splitting, unit conversions, and word problems including loan calculations. ' +
+    'If the input is not a math problem, return exactly: ERROR';
+
+  function askClaude(question, callback) {
+    fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 256,
+        system: SYSTEM,
+        messages: [{ role: 'user', content: question }]
+      })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data && data.content && data.content[0] && data.content[0].text) {
+        callback(null, data.content[0].text.trim());
+      } else if (data && data.error) {
+        callback('API error: ' + data.error.message);
+      } else {
+        callback('Unexpected response');
+      }
+    })
+    .catch(function (err) {
+      callback(err.message || 'Network error \u2014 check your connection');
+    });
+  }
+
+  function doCalculate() {
+    if (busy) return;
+    var input = el('math-input');
+    var raw = input.value.trim();
+    if (!raw) return;
+
+    setError('');
+    setBusy(true, raw);
+
+    askClaude(raw, function (err, answer) {
+      setBusy(false, '');
+      if (err) {
+        setError(err);
+        setDisplay('Result', raw, '\u2014', 'empty');
+        return;
+      }
+      if (answer === 'ERROR') {
+        setError('That doesn\u2019t look like a math problem.');
+        setDisplay('Result', raw, '\u2014', 'empty');
+        return;
+      }
+      setDisplay('Answer', raw, answer, '');
+      history.unshift({ raw: raw, result: answer });
+      renderHistory();
+      input.value = '';
+      input.focus();
+    });
+  }
+
+  function doClear() {
+    history = [];
+    renderHistory();
+    setDisplay('Result', '', '\u2014', 'empty');
+    setError('');
+  }
+
+  window.addEventListener('DOMContentLoaded', function () {
+    el('btn-calc').addEventListener('click', doCalculate);
+    el('btn-clear').addEventListener('click', doClear);
+    el('math-input').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') doCalculate();
+    });
+    renderHistory();
+    el('math-input').focus();
+  });
+
+})();
+</script>
+</body>
+</html>
